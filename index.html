@@ -1,9 +1,139 @@
-<HTML>
-<HEAD>
-<TITLE><TITLE>
-</HEAD>
-<BODY>
-<SCRIPT>
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Share API by MMA</title>
+    <style>
+        body, html {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        section {
+            padding-top: 10px;
+        }
+        #thumb {
+            border-radius: 10px;
+        }
+        #title {
+          font-weight: bold;
+          margin: 10px 0 5px 0;
+        }
+        #url {
+            color: #555;
+            font-size: 80%;
+        }
+        #share {
+            background-color: transparent;
+            border: none;
+            font: inherit;
+            text-transform: uppercase;
+            font-weight: bold;
+            color: #065fd4;
+            cursor: pointer;
+            padding: 5px 6px;
+            float: right;
+        }
+        #share:focus {
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+    <section>
+        <img src="https://i.ytimg.com/vi/4qITrOSR9DM/maxresdefault.jpg" alt="Video thumbnail" id="thumb" width="640" height="360">
+        <p id="title">Hello I'm MMA</p>
+        <span id="url">https://mmaismma.github.io</span>
+        <button id="share" disabled>Share</button>
+    </section>
 
-</SCRIPT>
-</BODY>
+    <script>
+        let shareData = window.location.search;
+        let videoId = 'mmainid';
+        let videoTitle = "mmaintitle"
+        let authKey = "AIzaSyAdRTwWP3RtuLRYnwZQnaue3T_vf5Y01Lw"
+
+        if (shareData.indexOf('youtube.com/watch?') === -1) {
+            if (shareData.indexOf('youtu.be/') === -1) {
+                //Error message
+            } else {
+                //Continue
+            }
+            //Add check for other sources
+        } else {
+            //Continue
+            shareData = Array.from(shareData).slice(shareData.indexOf('youtube.com/watch?')+18, shareData.length)
+            videoId = shareData.slice(shareData.join('').indexOf('v=')+2, 13).join('');
+            document.getElementById('url').textContent = window.location.search.slice(1)
+        }
+
+        document.getElementById('thumb').src = `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`;
+
+        let req4title = new XMLHttpRequest();
+        
+        req4title.onreadystatechange = () => {
+            if (req4title.readyState === 4) {
+                if (req4title.status >= 200 && req4title.status < 400) {
+                    videoTitle = JSON.parse(req4title.responseText).items[0].snippet.title;
+                    document.getElementById('title').textContent = videoTitle;
+                    document.getElementById('share').disabled = false;
+                    return
+                }
+                console.log('An error occured')
+                document.getElementById('share').disabled = false;
+            }
+        }
+
+        req4title.open('GET', `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${authKey}`);
+        req4title.send();
+        
+        function mdcTapAnim(e) {
+            if (e.currentTarget.hold) {
+                return
+            }
+            e.currentTarget.hold = true;
+            let item = e.currentTarget,
+                i = 0,
+                mpX = e.clientX - item.getBoundingClientRect().left,
+                mpY = e.clientY - item.getBoundingClientRect().top;
+
+            let theInt = setInterval(() => {
+
+                item.style.background =
+                    `radial-gradient(circle at ${mpX}px ${mpY}px, #b1dbff 0px, #b1dbff ${i}%, transparent ${i}%)`;
+                i >= 100 ? (clearInterval(theInt), setTimeout(() => {item.style.background = '#fff'; item.hold = false}, 500)) : null
+                i += 3;
+
+            }, 5);
+        }
+
+        async function createFile(url){
+            let response = await fetch(url);
+            let data = await response.blob();
+            return new File([data], 'thumbnail.jpeg');
+        }
+
+        function share() {
+            let file = createFile(document.getElementById('thumb').src)
+            console.log(file)
+            let data = {
+                text: `${document.getElementById('url').textContent}\n${document.getElementById('title').textContent}`,
+                file: file
+            }
+            try {
+                if (navigator.canShare && navigator.canShare(data)) {
+                    navigator.share(data)
+                }
+            } catch(err) {
+                window.alert('Your browser or operating system does not support sharing')
+                console.log(err)
+            }
+        }
+        document.getElementById('share').addEventListener('click', mdcTapAnim)
+        document.getElementById('share').addEventListener('click', share)
+    </script>
+</body>
+</html>
